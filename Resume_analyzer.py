@@ -21,13 +21,14 @@ body, html, .stApp {
     padding: 2rem;
 }
 
-h1 {
+h1, .main h1, .stApp h1 {
     text-align: center;
     font-weight: 700;
-    color: #1a1a40;
+    color: #14213d !important;  /* Navy Blue */
+    font-size: 2.8rem;
     margin-bottom: 2rem;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.05);
 }
-
 
 .stTextInput>div>div>input,
 .stFileUploader>div>div {
