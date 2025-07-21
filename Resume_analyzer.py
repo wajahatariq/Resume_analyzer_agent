@@ -11,44 +11,7 @@ GEMINI_MODEL = "gemini/gemini-1.5-flash"
 
 st.set_page_config(page_title="Resume Analyzer AI", layout="centered")
 
-# ---------------------- CUSTOM CSS ----------------------
-st.markdown("""
-    <style>
-        body {
-            background-color: #f5f7fa;
-        }
-        .main {
-            background-color: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        .result-box {
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 20px;
-            font-size: 16px;
-        }
-        .good {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .average {
-            background-color: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeeba;
-        }
-        .poor {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-st.markdown("<div class='main'>", unsafe_allow_html=True)
-st.title("📄 Resume Analyzer AI Agent")
+st.title("Resume Analyzer AI Agent")
 st.markdown("Upload your resume image (JPG/PNG) and paste a job description. The AI will extract resume data and analyze it using ATS logic.")
 
 # ---------------------- FUNCTIONS ----------------------
@@ -59,7 +22,7 @@ def extract_resume_data(base64_resume: str) -> dict:
             "content": [
                 {
                     "type": "text",
-                    "text": "Extract the following information from this resume: Name, Email, Phone, Skills, Education, Experience.\n\nRespond only in pure JSON format."
+                    "text": "Extract the following information from this resume: Name, Email, Phone, Skills, Education, Experience. Respond only in valid JSON format."
                 },
                 {
                     "type": "image_url",
@@ -76,9 +39,16 @@ def extract_resume_data(base64_resume: str) -> dict:
         max_tokens=2048
     )
     content = response.choices[0].message.content.strip()
+
+    # Ensure JSON is valid before parsing
     try:
-        return json.loads(content)
-    except json.JSONDecodeError:
+        # Try to close the JSON if Gemini left it open
+        if content.endswith("}"):
+            return json.loads(content)
+        else:
+            fixed = content.split("```json")[-1].split("```")[0].strip() if "```json" in content else content
+            return json.loads(fixed)
+    except Exception as e:
         raise ValueError("Gemini returned invalid JSON:\n\n" + content)
 
 def evaluate_ats_score(resume_data: dict, job_description: str) -> dict:
@@ -109,8 +79,9 @@ def evaluate_ats_score(resume_data: dict, job_description: str) -> dict:
     )
     content = response.choices[0].message.content.strip()
     try:
-        return json.loads(content)
-    except json.JSONDecodeError:
+        fixed = content.split("```json")[-1].split("```")[0].strip() if "```json" in content else content
+        return json.loads(fixed)
+    except Exception as e:
         raise ValueError("Gemini returned invalid JSON:\n\n" + content)
 
 # ---------------------- UI ----------------------
@@ -120,40 +91,33 @@ submit = st.button("Submit")
 
 if submit:
     if not uploaded_file:
-        st.warning("⚠️ Please upload a JPG or PNG resume.")
+        st.warning("Please upload a JPG or PNG resume.")
     elif not job_description.strip():
-        st.warning("⚠️ Please paste a job description.")
+        st.warning("Please paste a job description.")
     else:
         bytes_data = uploaded_file.read()
         encoded_resume = base64.b64encode(bytes_data).decode("utf-8")
 
-        with st.spinner("🔍 Extracting resume data..."):
+        with st.spinner("Extracting resume data..."):
             try:
                 resume_data = extract_resume_data(encoded_resume)
                 st.subheader("Extracted Resume Information")
                 st.json(resume_data)
             except Exception as e:
-                st.error(f"❌ Failed to extract resume data:\n{e}")
+                st.error(f"Failed to extract resume data: {e}")
                 st.stop()
 
-        with st.spinner("📊 Evaluating ATS score..."):
+        with st.spinner("Evaluating ATS score..."):
             try:
                 ats_result = evaluate_ats_score(resume_data, job_description)
                 score = ats_result['score']
-                level = ats_result['level'].lower()
+                level = ats_result['level']
                 remarks = ats_result['remarks']
 
-                level_class = "good" if level == "good" else "average" if level == "average" else "poor"
-
-                st.markdown(f"""
-                    <div class="result-box {level_class}">
-                        <strong>ATS Score:</strong> {score} / 100<br>
-                        <strong>Level:</strong> {level.capitalize()}<br>
-                        <strong>Remarks:</strong> {remarks}
-                    </div>
-                """, unsafe_allow_html=True)
+                st.subheader("ATS Evaluation")
+                st.markdown(f"**Score:** {score} / 100")
+                st.markdown(f"**Level:** {level}")
+                st.markdown(f"**Remarks:** {remarks}")
 
             except Exception as e:
-                st.error(f"❌ Failed to evaluate ATS score:\n{e}")
-
-st.markdown("</div>", unsafe_allow_html=True)
+                st.error(f"Failed to evaluate ATS score: {e}")
