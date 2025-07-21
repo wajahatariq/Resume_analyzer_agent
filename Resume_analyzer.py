@@ -17,27 +17,34 @@ css = """
 
 body, html, .stApp {
     font-family: 'Poppins', sans-serif;
-    background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+    background: linear-gradient(to right, #eef2f3, #dfe9f3);
     padding: 2rem;
 }
 
 h1 {
     text-align: center;
     font-weight: 700;
-    color: #1f2937;
+    color: #1a1a40;
     margin-bottom: 2rem;
 }
 
 .stTextInput>div>div>input,
 .stFileUploader>div>div {
     border-radius: 8px;
-    border: 1px solid #ddd !important;
+    border: 1px solid #ccc !important;
     padding: 10px !important;
     font-size: 1rem !important;
+    color: #2d2d2d;
+    background-color: white;
+}
+
+.stTextInput label, .stFileUploader label {
+    color: #333 !important;
+    font-weight: 500;
 }
 
 .stButton>button {
-    background: linear-gradient(to right, #667eea, #764ba2);
+    background: linear-gradient(to right, #4f46e5, #6366f1);
     border: none;
     color: white;
     font-size: 16px;
@@ -48,30 +55,45 @@ h1 {
 }
 
 .stButton>button:hover {
-    background: linear-gradient(to right, #5a67d8, #6b46c1);
+    background: linear-gradient(to right, #4338ca, #4f46e5);
 }
 
 .result-box {
-    background: rgba(255, 255, 255, 0.75);
-    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(15px);
     padding: 2rem;
     border-radius: 20px;
-    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     margin-top: 2rem;
+    color: #2d2d2d;
 }
 
 .result-box h2 {
-    color: #1e40af;
+    color: #3b82f6;
+    font-weight: 700;
+    font-size: 26px;
+}
+
+.result-box h4 {
+    color: #6b7280;
     font-weight: 600;
+    font-size: 20px;
+    margin-top: 0.5rem;
 }
 
 .result-box p {
     font-size: 16px;
+    color: #2d2d2d;
+    line-height: 1.7;
+}
+
+.result-box ul li {
+    margin-bottom: 8px;
     color: #374151;
-    line-height: 1.6;
 }
 </style>
 """
+
 st.markdown(css, unsafe_allow_html=True)
 
 # ----------- Title -----------
