@@ -28,6 +28,7 @@ h1 {
     margin-bottom: 2rem;
 }
 
+
 .stTextInput>div>div>input,
 .stFileUploader>div>div {
     border-radius: 8px;
