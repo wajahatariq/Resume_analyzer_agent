@@ -4,73 +4,80 @@ import json
 import os
 from litellm import completion
 
-# ---------------------- CONFIG ----------------------
+# ----------- CONFIG -----------
 api_key = st.secrets["GEMINI_API_KEY"]
 os.environ["GEMINI_API_KEY"] = api_key
 GEMINI_MODEL = "gemini/gemini-1.5-flash"
+st.set_page_config(page_title="Resume Analyzer AI", layout="centered")
 
-st.set_page_config(page_title="AI Resume Analyzer", layout="centered")
-
-# ---------------------- CSS ----------------------
-custom_css = """
+# ----------- CSS STYLE -----------
+css = """
 <style>
-    html, body, [class*="css"] {
-        font-family: 'Segoe UI', sans-serif;
-        background: linear-gradient(to right, #f5f7fa, #c3cfe2);
-    }
-    .stApp {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 2rem;
-    }
-    h1 {
-        text-align: center;
-        color: #1f2937;
-        margin-bottom: 2rem;
-    }
-    .stFileUploader, .stTextInput, .stButton {
-        padding: 0.5rem !important;
-    }
-    .stButton button {
-        background-color: #2563eb !important;
-        color: white !important;
-        font-weight: bold;
-        border-radius: 8px;
-        padding: 0.6rem 1.2rem;
-    }
-    .stButton button:hover {
-        background-color: #1d4ed8 !important;
-    }
-    .result-container {
-        background-color: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        margin-top: 2rem;
-    }
-    .score {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #1e40af;
-    }
-    .level {
-        font-size: 1.2rem;
-        font-weight: 500;
-        color: #374151;
-    }
-    .remarks {
-        margin-top: 1rem;
-        font-style: italic;
-        color: #4b5563;
-    }
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap');
+
+body, html, .stApp {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+    padding: 2rem;
+}
+
+h1 {
+    text-align: center;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 2rem;
+}
+
+.stTextInput>div>div>input,
+.stFileUploader>div>div {
+    border-radius: 8px;
+    border: 1px solid #ddd !important;
+    padding: 10px !important;
+    font-size: 1rem !important;
+}
+
+.stButton>button {
+    background: linear-gradient(to right, #667eea, #764ba2);
+    border: none;
+    color: white;
+    font-size: 16px;
+    padding: 0.7rem 1.5rem;
+    border-radius: 10px;
+    transition: background 0.3s ease;
+    font-weight: 600;
+}
+
+.stButton>button:hover {
+    background: linear-gradient(to right, #5a67d8, #6b46c1);
+}
+
+.result-box {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(10px);
+    padding: 2rem;
+    border-radius: 20px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    margin-top: 2rem;
+}
+
+.result-box h2 {
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.result-box p {
+    font-size: 16px;
+    color: #374151;
+    line-height: 1.6;
+}
 </style>
 """
-st.markdown(custom_css, unsafe_allow_html=True)
+st.markdown(css, unsafe_allow_html=True)
 
-# ---------------------- Title ----------------------
+# ----------- Title -----------
 st.title("AI Resume Analyzer")
 
-# ---------------------- Functions ----------------------
+# ----------- AI Functions -----------
 def extract_resume_data(base64_resume: str) -> dict:
     prompt = [
         {
@@ -78,7 +85,7 @@ def extract_resume_data(base64_resume: str) -> dict:
             "content": [
                 {
                     "type": "text",
-                    "text": "Extract the following from this resume image: Name, Email, Phone, Skills, Education, Experience. Respond only in valid JSON."
+                    "text": "Extract Name, Email, Phone, Skills, Education, and Experience from this resume image. Reply ONLY in valid JSON format."
                 },
                 {
                     "type": "image_url",
@@ -89,85 +96,71 @@ def extract_resume_data(base64_resume: str) -> dict:
             ]
         }
     ]
-    response = completion(
-        model=GEMINI_MODEL,
-        messages=prompt,
-        max_tokens=2048
-    )
+    response = completion(model=GEMINI_MODEL, messages=prompt, max_tokens=2048)
     content = response.choices[0].message.content.strip()
     try:
-        if content.endswith("}"):
-            return json.loads(content)
-        else:
-            fixed = content.split("```json")[-1].split("```")[0].strip() if "```json" in content else content
-            return json.loads(fixed)
-    except Exception as e:
-        raise ValueError("Gemini returned invalid JSON:\n\n" + content)
-
-def evaluate_ats_score(resume_data: dict, job_title: str) -> dict:
-    prompt = f"""
-    You are an ATS evaluator AI. Given the following resume data:
-
-    {json.dumps(resume_data, indent=2)}
-
-    And the job title the user is targeting:
-    {job_title}
-
-    Do the following:
-    1. Score the resume out of 100 based on relevance to the job title.
-    2. Classify it as: 'Good' (75+), 'Average' (50-74), 'Poor' (<50).
-    3. Write a personalized remark.
-
-    Respond only in this format:
-    {{
-      "score": <number>,
-      "level": "<Good|Average|Poor>",
-      "remarks": "<Your AI-generated feedback>"
-    }}
-    """
-    response = completion(
-        model=GEMINI_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=2048
-    )
-    content = response.choices[0].message.content.strip()
-    try:
+        return json.loads(content)
+    except:
         fixed = content.split("```json")[-1].split("```")[0].strip() if "```json" in content else content
         return json.loads(fixed)
-    except Exception as e:
-        raise ValueError("Gemini returned invalid JSON:\n\n" + content)
 
-# ---------------------- UI ----------------------
-uploaded_file = st.file_uploader("Upload Your Resume (JPG or PNG only)", type=["jpg", "jpeg", "png"])
+def ats_score_with_improvements(resume_data: dict, job_title: str) -> dict:
+    name = resume_data.get("Name", "The candidate")
+    prompt = f"""
+You are a professional AI Resume Evaluator. Given this resume data:
+
+{json.dumps(resume_data)}
+
+And the target job title: "{job_title}"
+
+Your task:
+1. Give an ATS score (out of 100).
+2. Categorize the resume as Good (75+), Average (50-74), or Poor (<50).
+3. Write personalized remarks using the name "{name}".
+4. Suggest ways to improve their resume — specific and clear.
+
+Respond in this format:
+{{
+  "score": <number>,
+  "level": "<Good|Average|Poor>",
+  "remarks": "<Your overall opinion using the candidate’s name>",
+  "improvements": ["suggestion 1", "suggestion 2", ...]
+}}
+"""
+    response = completion(model=GEMINI_MODEL, messages=[{"role": "user", "content": prompt}], max_tokens=2048)
+    content = response.choices[0].message.content.strip()
+    try:
+        return json.loads(content)
+    except:
+        fixed = content.split("```json")[-1].split("```")[0].strip() if "```json" in content else content
+        return json.loads(fixed)
+
+# ----------- UI Inputs -----------
+uploaded_file = st.file_uploader("Upload your resume (JPG or PNG only)", type=["jpg", "jpeg", "png"])
 job_title = st.text_input("What job are you searching for?")
-submit = st.button("Analyze My Resume")
+submit = st.button("Analyze Resume")
 
-# ---------------------- Execution ----------------------
+# ----------- Resume Analyzer Logic -----------
 if submit:
-    if not uploaded_file:
-        st.warning("Please upload a resume image file.")
-    elif not job_title.strip():
-        st.warning("Please enter the job you’re targeting.")
+    if not uploaded_file or not job_title.strip():
+        st.warning("Please upload a resume and enter a job title.")
     else:
-        bytes_data = uploaded_file.read()
-        encoded_resume = base64.b64encode(bytes_data).decode("utf-8")
-
-        with st.spinner("Extracting resume and evaluating..."):
+        encoded = base64.b64encode(uploaded_file.read()).decode("utf-8")
+        with st.spinner("Analyzing resume..."):
             try:
-                resume_data = extract_resume_data(encoded_resume)
-                ats_result = evaluate_ats_score(resume_data, job_title)
-
-                score = ats_result['score']
-                level = ats_result['level']
-                remarks = ats_result['remarks']
+                resume_data = extract_resume_data(encoded)
+                results = ats_score_with_improvements(resume_data, job_title)
 
                 st.markdown(f"""
-                    <div class="result-container">
-                        <div class="score">Score: {score} / 100</div>
-                        <div class="level">Level: {level}</div>
-                        <div class="remarks">"{remarks}"</div>
-                    </div>
+                <div class="result-box">
+                    <h2>Score: {results['score']} / 100</h2>
+                    <h4>Level: {results['level']}</h4>
+                    <p><strong>Remarks:</strong> {results['remarks']}</p>
+                    <p><strong>Suggestions to Improve:</strong></p>
+                    <ul>
+                        {''.join([f"<li>{item}</li>" for item in results['improvements']])}
+                    </ul>
+                </div>
                 """, unsafe_allow_html=True)
-
             except Exception as e:
                 st.error(f"Error: {e}")
