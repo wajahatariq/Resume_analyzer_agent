@@ -78,27 +78,35 @@ st.markdown("Upload your resume (Only JPG, JPEG, or PNG formats are supported)")
 uploaded_file = st.file_uploader("Upload Resume", type=["png", "jpg", "jpeg"])
 job_description = st.text_area("Paste the job description here:", height=200)
 
-if uploaded_file and job_description:
-    bytes_data = uploaded_file.read()
-    encoded_resume = base64.b64encode(bytes_data).decode("utf-8")
+submit = st.button("Submit")
 
-    with st.spinner("Extracting resume data..."):
-        try:
-            resume_data = extract_resume_data(encoded_resume)
-            st.subheader("Extracted Resume Information")
-            st.json(resume_data)
-        except Exception as e:
-            st.error(f"Failed to extract resume data:\n{e}")
+if submit:
+    if not uploaded_file:
+        st.warning("Please upload a resume file.")
+    elif not job_description.strip():
+        st.warning("Please paste a job description.")
+    else:
+        bytes_data = uploaded_file.read()
+        encoded_resume = base64.b64encode(bytes_data).decode("utf-8")
 
-    with st.spinner("Evaluating resume against job description..."):
-        try:
-            ats_result = evaluate_ats_score(resume_data, job_description)
-            st.subheader("ATS Evaluation Result")
-            st.write(f"**ATS Score:** {ats_result['score']} / 100")
-            st.write(f"**Level:** {ats_result['level']}")
-            st.write(f"**Remarks:** {ats_result['remarks']}")
-        except Exception as e:
-            st.error(f"Failed to evaluate resume:\n{e}")
+        with st.spinner("Extracting resume data..."):
+            try:
+                resume_data = extract_resume_data(encoded_resume)
+                st.subheader("Extracted Resume Information")
+                st.json(resume_data)
+            except Exception as e:
+                st.error(f"Failed to extract resume data:\n{e}")
+                st.stop()
 
-st.markdown("---")
-st.markdown("Built using Gemini and Streamlit.")
+        with st.spinner("Evaluating resume against job description..."):
+            try:
+                ats_result = evaluate_ats_score(resume_data, job_description)
+                st.subheader("ATS Evaluation Result")
+                st.write(f"**ATS Score:** {ats_result['score']} / 100")
+                st.write(f"**Level:** {ats_result['level']}")
+                st.write(f"**Remarks:** {ats_result['remarks']}")
+            except Exception as e:
+                st.error(f"Failed to evaluate resume:\n{e}")
+                st.stop()
+
+
